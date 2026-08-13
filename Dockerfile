@@ -12,6 +12,17 @@ WORKDIR /app
 
 COPY . /app
 
+# Diagnostic: check whether Render's Docker context
+# contains the nested Git submodules.
+RUN echo "=== FalconHTTP ===" && \
+    ls -la server/third_party/falconhttp && \
+    echo "=== HashMapPro ===" && \
+    ls -la server/third_party/falconhttp/libs/internal/HashMapPro || true && \
+    echo "=== MiniDB ===" && \
+    ls -la server/third_party/minidb && \
+    echo "=== JsonParser ===" && \
+    ls -la server/third_party/minidb/libs/internal/JsonParser || true
+
 WORKDIR /app/server
 
 RUN cmake -S . -B build \
