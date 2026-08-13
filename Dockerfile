@@ -12,6 +12,8 @@ WORKDIR /app
 
 COPY . .
 
+RUN git submodule update --init --recursive
+
 WORKDIR /app/server
 
 RUN cmake -S . -B build \
