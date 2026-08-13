@@ -10,7 +10,7 @@ RUN apt-get update && \
 
 WORKDIR /app
 
-COPY server /app/server
+COPY . /app
 
 WORKDIR /app/server
 
