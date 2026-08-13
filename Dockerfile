@@ -10,18 +10,12 @@ RUN apt-get update && \
 
 WORKDIR /app
 
-COPY . /app
+# Copy the repository, including the git metadata needed to initialize
+# recursive submodules.
+COPY . .
 
-# Diagnostic: check whether Render's Docker context
-# contains the nested Git submodules.
-RUN echo "=== FalconHTTP ===" && \
-    ls -la server/third_party/falconhttp && \
-    echo "=== HashMapPro ===" && \
-    ls -la server/third_party/falconhttp/libs/internal/HashMapPro || true && \
-    echo "=== MiniDB ===" && \
-    ls -la server/third_party/minidb && \
-    echo "=== JsonParser ===" && \
-    ls -la server/third_party/minidb/libs/internal/JsonParser || true
+# Make sure all nested dependencies are populated.
+RUN git submodule update --init --recursive
 
 WORKDIR /app/server
 
