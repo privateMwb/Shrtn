@@ -89,7 +89,7 @@ int main() {
     // Render provides the PORT environment variable.
     // Fall back to 8080 for local development.
     const char* portEnv = std::getenv("PORT");
-    const int port = portEnv ? std::atoi(portEnv) : 8080;
+    const int port = portEnv != nullptr ? std::atoi(portEnv) : 8080;
 
     if (!server.start(port)) {
         std::cerr << "Failed to start server on port " << port << "\n";
