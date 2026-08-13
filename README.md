@@ -45,6 +45,8 @@ Shrtn is a URL shortener built on [FalconHTTP](https://github.com/privateMwb/Fal
 > The screenshot above is a placeholder path (`docs/assets/shrtn.png`) —
 > add a real capture of the running frontend there before publishing.
 
+**Live demo:** [shrtn-nine.vercel.app](https://shrtn-nine.vercel.app)
+
 ## 📑 Table of Contents
 
 - [Features](#features)
@@ -175,6 +177,8 @@ Shrtn/
 ├── .clang-format
 ├── .clang-tidy
 ├── .gitignore
+├── Dockerfile
+├── init-nested-submodules.sh
 ├── README.md
 └── LICENSE
 ```
@@ -221,13 +225,17 @@ cd scripts
 
 Split across two very different targets — worth being precise about which does what, since it's easy to assume one platform covers both:
 
-**Frontend → Vercel.** `frontend/` is a static Vite build with no server-side logic of its own, which is exactly what Vercel's free Hobby tier is built for — no credit card required, deploy on push. Set the frontend's `API_BASE` (in `src/ShrtnApp.jsx`) to point at wherever the backend actually lives before building for production.
+**Frontend → Vercel.** `frontend/` is a static Vite build with no server-side logic of its own, which is exactly what Vercel's free Hobby tier is built for — no credit card required, deploy on push. Set `VITE_API_BASE` (Vercel project → Environment Variables) to the backend's real Render URL before deploying — see `frontend/.env.example`.
 
-**Backend → *not* Vercel.** This is the correction worth making explicit: Vercel cannot run Shrtn's backend. `server/` is a long-running process that binds a persistent TCP port (`server.start(8080)` + `server.run()`, blocking forever) — Vercel's model is serverless functions that spin up per-request and exit, with no persistent port binding and no durable filesystem for `./data/shrtn.json` to live on. Deploying the backend there wouldn't degrade gracefully; it simply doesn't run.
+**Backend → *not* Vercel.** This is worth making explicit: Vercel cannot run Shrtn's backend. `server/` is a long-running process that binds a persistent TCP port (`server.start(8080)` + `server.run()`, blocking forever) — Vercel's model is serverless functions that spin up per-request and exit, with no persistent port binding and no durable filesystem for `./data/shrtn.json` to live on.
 
-Given this project's constraints (no budget, no credit card — see the project's working notes on why Oracle/Alibaba/Fly.io were all ruled out in turn), the backend is instead **self-hosted** on the developer's own device and exposed via **Cloudflare Tunnel** (`cloudflared`) — free, no credit card, works behind CGNAT (no port forwarding or static IP needed), and provides real HTTPS termination for free as a side benefit none of the paid-tier alternatives offered at this budget.
+The backend deploys to **Render** instead, built via the repo's `Dockerfile`:
 
-So: two independent deploys, not one platform doing both. If that's not the split you had in mind, say which part you were picturing differently.
+- **Nested submodules need an explicit init step.** Render clones this repo's own submodules (`server/third_party/minidb`, `server/third_party/falconhttp`) automatically, but doesn't recurse into *their* `.gitmodules` (e.g. MiniDB's own vendored `JsonParser`/`ThreadPoolPro`). `init-nested-submodules.sh` walks the tree for every `.gitmodules` file and clones anything still empty — it works without `.git` metadata, since `.gitmodules` is a plain tracked file that survives a Docker `COPY`. The Dockerfile runs it before configuring CMake.
+- **Multi-stage build** — an `ubuntu:24.04` build stage with the full toolchain (`build-essential`, `cmake`, `git`) compiles `Shrtn_server` in `Release` mode with the example/test/benchmark/regression submodule targets all off; the final image is a clean `ubuntu:24.04` with only `libstdc++6` and the compiled binary, keeping the deployed image small.
+- **`/app/data` is created at build time, inside the image layer** — meaning, as currently configured, it is **not** a persistent volume. See [Known Limitations](#known-limitations) for what that means for data survival across redeploys.
+
+So: two independent deploys, not one platform doing both.
 
 ## <a id="known-limitations"></a>⚠️ Known Limitations
 
@@ -237,7 +245,7 @@ So: two independent deploys, not one platform doing both. If that's not the spli
 - **No rate limiting** on `POST /shorten` or `GET /links`.
 - **Click-count increment failures are silent.** `GET /:code`'s redirect succeeds either way; a failed count update currently has zero visibility anywhere, including `/api/metrics`.
 - **No automated test suite.** `server/` has no `tests/` directory — `scripts/smoke_test.sh` exercises the live server end-to-end via curl, but it's a manual/CI-boot-time check, not a sanitized unit-test suite, and there's no code coverage reporting as a result.
-- **Self-hosted uptime, not managed-cloud uptime.** The backend's availability is tied to the host device staying powered, connected, and running `cloudflared` — see [Deployment](#deployment).
+- **`/app/data` is not a persistent volume on Render as currently deployed.** Every redeploy (and, on Render's free tier, every spin-down after 15 minutes of inactivity) rebuilds the container from the Docker image, resetting `shrtn.json` to empty. All shortened links are lost when this happens. Attaching a Render persistent disk mounted at `/app/data` would fix this, at Render's paid-tier cost.
 
 ## <a id="documentation"></a>📖 Documentation
 
