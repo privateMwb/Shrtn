@@ -35,6 +35,32 @@
 #     deliberate design change, not a lint fix. Worth doing later
 #     as its own change, not silently via a tidy pass.
 #
+#   readability-magic-numbers
+#     Fires on `50` and `400` inside Metrics.h/MetricsJson.h --
+#     copied-unchanged files that can never be edited to satisfy
+#     it, which settles this regardless of what's done with
+#     Shrtn's own literals (e.g. main.cpp's 200/8080).
+#
+#   readability-identifier-length
+#     Fires on `t`, `fn`, `ms` inside the copied files, and on
+#     idiomatic short names used consistently in Shrtn's own code
+#     (`db`, `id`, `s`, `c`) for tightly-scoped, obvious-context
+#     locals -- not a naming problem, a style already in use
+#     everywhere.
+#
+#   misc-non-private-member-variables-in-classes
+#     Fires on MetricEntry's public fields in Metrics.h -- a
+#     plain data struct by design, in a file that can't be
+#     restructured.
+#
+#   misc-include-cleaner
+#     Fights the project's own `rain::` umbrella-namespace
+#     convention, which deliberately exposes symbols transitively
+#     through each library's main header rather than requiring
+#     every consumer to include the originating header directly.
+#     Enabling this fights an intentional architecture decision,
+#     not an oversight.
+#
 # Everything else uses clang-tidy's defaults. If a future warning
 # turns out to be more default-set noise than a real conflict
 # worth living with, add it above with the same reasoning --
@@ -51,7 +77,11 @@ Checks: >
   -readability-named-parameter,
   -readability-identifier-naming,
   -performance-enum-size,
-  -bugprone-easily-swappable-parameters
+  -bugprone-easily-swappable-parameters,
+  -readability-magic-numbers,
+  -readability-identifier-length,
+  -misc-non-private-member-variables-in-classes,
+  -misc-include-cleaner
 
 WarningsAsErrors: '*'
 HeaderFilterRegex: '(server/include|server/src)/.*'
