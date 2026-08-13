@@ -1,0 +1,1 @@
+/data/data/com.termux/files/usr/bin/c++ -O2 -g -DNDEBUG -Xlinker --dependency-file=CMakeFiles/Shrtn_server.dir/link.d CMakeFiles/Shrtn_server.dir/src/main.cpp.o -o Shrtn_server  third_party/falconhttp/libFalconHTTP.a third_party/minidb/libMiniDB.a

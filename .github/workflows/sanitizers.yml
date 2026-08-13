@@ -1,0 +1,227 @@
+# ============================================================
+# .github/workflows/sanitizers.yml
+# Boots Shrtn_server under AddressSanitizer+
+# UndefinedBehaviorSanitizer, and separately under
+# ThreadSanitizer, then exercises real endpoints.
+#
+# This is a smoke test, not a sanitized test suite -- server/
+# has no tests/ directory yet (see build.yml's comment on the
+# same gap), so there's nothing to run sanitized beyond booting
+# the server and hitting it with real requests. Still
+# meaningful: ShrtnDb's mutex (guarding all Table/Database
+# access), Metrics.h's ring buffer (std::mutex), the atomic
+# RecordID counter, and thread_local breakdown pointer are all
+# concurrency-sensitive code that ThreadSanitizer specifically
+# is well-suited to catch issues in -- more so than the ASan/
+# UBSan pairing alone. POST /shorten's tryInsertUrl() is
+# exercised concurrently below specifically because it's the
+# one code path doing a locked check-then-insert (see ShrtnDb.h's
+# own comment on why that's a single critical section, not two).
+#
+# ASan+UBSan can share one binary; ThreadSanitizer cannot be
+# combined with ASan in the same build, hence two separate
+# configure/build passes below.
+# ============================================================
+
+name: Sanitizers
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  asan-ubsan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15 # See the tsan job's comment -- fail fast and
+                        # visibly rather than hang silently.
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build clang curl
+
+      - name: Configure
+        working-directory: server
+        env:
+          CXX: clang++
+          CXXFLAGS: -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1
+          LDFLAGS: -fsanitize=address,undefined
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+
+      - name: Build
+        working-directory: server
+        run: cmake --build build
+
+      - name: Boot server and exercise real endpoints
+        working-directory: server
+        env:
+          ASAN_OPTIONS: detect_leaks=1:halt_on_error=0
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=0
+        run: |
+          mkdir -p data
+          ./build/Shrtn_server > server.log 2>&1 &
+          SERVER_PID=$!
+
+          # Poll instead of a blind sleep -- see the tsan job's comment.
+          for i in $(seq 1 30); do
+            if curl -sf --max-time 2 localhost:8080/api/health > /dev/null 2>&1; then
+              echo "Server ready after ${i}x2s polls"
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "Server never became ready -- dumping log:"
+              cat server.log
+              exit 1
+            fi
+            sleep 2
+          done
+
+          curl -sf --max-time 10 localhost:8080/api/health
+          CODE=$(curl -sf --max-time 10 -X POST localhost:8080/shorten \
+            -H "Content-Type: application/json" \
+            -d '{"url": "https://example.com/sanitizer-check"}' \
+            | grep -o '"code"[[:space:]]*:[[:space:]]*"[^"]*"' | sed -E 's/.*"([^"]*)"$/\1/')
+          curl -sf --max-time 10 -o /dev/null -w "%{http_code}" "localhost:8080/$CODE" # expect 302
+          curl -sf --max-time 10 localhost:8080/links
+          curl -sf --max-time 10 localhost:8080/api/metrics
+          curl -sf --max-time 10 localhost:8080/this-code-does-not-exist || true # expected 404
+
+          kill -TERM "$SERVER_PID" 2>/dev/null || true
+
+          # Bounded wait, not `wait "$SERVER_PID"` alone -- see the tsan
+          # job's comment on why an unbounded wait is unsafe here.
+          for i in $(seq 1 10); do
+            if ! kill -0 "$SERVER_PID" 2>/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          kill -KILL "$SERVER_PID" 2>/dev/null || true
+          wait "$SERVER_PID" 2>/dev/null || true
+
+          cat server.log
+
+          if grep -qE "ERROR: (AddressSanitizer|UndefinedBehaviorSanitizer)" server.log; then
+            echo "Sanitizer reported an error -- see log above."
+            exit 1
+          fi
+
+  tsan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15 # Fail fast and visibly instead of silently consuming
+                        # CI hours if the server hangs (real deadlock or
+                        # unready-server + timeout-less curl) -- this is
+                        # what caught FalconEye's own ~1hr hang originally.
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build clang curl
+
+      - name: Configure
+        working-directory: server
+        env:
+          CXX: clang++
+          CXXFLAGS: -fsanitize=thread -fno-omit-frame-pointer -g -O1
+          LDFLAGS: -fsanitize=thread
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+
+      - name: Build
+        working-directory: server
+        run: cmake --build build
+
+      - name: Boot server and exercise real endpoints concurrently
+        working-directory: server
+        env:
+          TSAN_OPTIONS: halt_on_error=0
+        run: |
+          mkdir -p data
+          ./build/Shrtn_server > server.log 2>&1 &
+          SERVER_PID=$!
+
+          # TSan instrumentation is slow to boot -- poll instead of a
+          # blind sleep, so we don't fire requests before the server is
+          # actually listening. Bounded to 60s so a server that never
+          # comes up fails here, with a clear message, instead of every
+          # curl below hanging indefinitely on a dead connection.
+          for i in $(seq 1 30); do
+            if curl -sf --max-time 2 localhost:8080/api/health > /dev/null 2>&1; then
+              echo "Server ready after ${i}x2s polls"
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "Server never became ready -- dumping log:"
+              cat server.log
+              exit 1
+            fi
+            sleep 2
+          done
+
+          # 5 concurrent POST /shorten pairs -- this is the code path
+          # that matters most under TSan: ShrtnDb::tryInsertUrl() does
+          # a locked collision-check-then-insert, and this is what
+          # actually exercises that lock under real contention rather
+          # than just proving the server can boot. Reduced from a
+          # higher count deliberately: TSan's per-synchronization-event
+          # overhead is substantial, and the thread pool here is sized
+          # for 4 (see main.cpp) -- 10 concurrent requests is still
+          # enough real contention without piling up connections against
+          # a 4-thread pool under the heaviest instrumentation we run.
+          # Every curl below has --max-time so a genuinely stuck request
+          # fails in seconds, not silently forever.
+          #
+          # PIDs tracked explicitly and waited on individually -- NOT a
+          # bare `wait`, which waits for every background job in this
+          # shell, including the server process backgrounded above
+          # (which never exits on its own). A bare `wait` here would
+          # deadlock the script itself waiting on a process it hasn't
+          # been told to stop yet.
+          CURL_PIDS=()
+          for i in $(seq 1 5); do
+            curl -sf --max-time 10 -X POST localhost:8080/shorten \
+              -H "Content-Type: application/json" \
+              -d "{\"url\": \"https://example.com/tsan-check-$i\"}" > /dev/null &
+            CURL_PIDS+=($!)
+            curl -sf --max-time 10 localhost:8080/api/health > /dev/null &
+            CURL_PIDS+=($!)
+          done
+          for pid in "${CURL_PIDS[@]}"; do
+            wait "$pid" || true
+          done
+          curl -sf --max-time 10 localhost:8080/links > /dev/null
+          curl -sf --max-time 10 localhost:8080/api/metrics > /dev/null
+
+          kill -TERM "$SERVER_PID" 2>/dev/null || true
+
+          # Bounded wait, not `wait "$SERVER_PID"` alone: if the server
+          # is genuinely deadlocked (plausible -- this is exactly what
+          # TSan's altered thread scheduling is good at surfacing),
+          # SIGTERM may never be processed and an unbounded `wait`
+          # would hang the job indefinitely regardless of every curl
+          # above already having its own timeout. Force-kill after 10s
+          # so this step always terminates.
+          for i in $(seq 1 10); do
+            if ! kill -0 "$SERVER_PID" 2>/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          kill -KILL "$SERVER_PID" 2>/dev/null || true
+          wait "$SERVER_PID" 2>/dev/null || true
+
+          cat server.log
+
+          if grep -q "WARNING: ThreadSanitizer" server.log; then
+            echo "ThreadSanitizer reported a data race -- see log above."
+            exit 1
+          fi

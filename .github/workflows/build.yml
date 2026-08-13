@@ -1,0 +1,71 @@
+# ============================================================
+# .github/workflows/build.yml
+# Configures and builds Shrtn_server across compilers and
+# build types.
+#
+# Linux-only for now: everything in this project has only ever
+# been built and run on Linux/Termux. FalconHTTP's socket code
+# (Listener.h/Socket.h) hasn't been verified for POSIX-only
+# assumptions, and nothing here has been tested on macOS or
+# MSVC -- add those to the matrix once actually verified, rather
+# than claim support that hasn't been checked.
+#
+# No test step: server/ has no tests/ directory yet (Shrtn is
+# thin glue over already-tested FalconHTTP/MiniDB). See
+# scripts/smoke_test.sh for a separate, manually-run end-to-end
+# check against a live instance -- not wired into this workflow,
+# since it needs a real running server and isn't a ctest suite.
+# ============================================================
+
+name: Build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    name: "${{ matrix.compiler }} | ${{ matrix.build_type }}"
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+
+      matrix:
+        include:
+          - compiler: GCC
+            cxx: g++
+            build_type: Debug
+
+          - compiler: GCC
+            cxx: g++
+            build_type: Release
+
+          - compiler: Clang
+            cxx: clang++
+            build_type: Debug
+
+          - compiler: Clang
+            cxx: clang++
+            build_type: Release
+
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build g++ clang
+
+      - name: Configure
+        working-directory: server
+        env:
+          CXX: ${{ matrix.cxx }}
+        run: cmake -S . -B build-${{ matrix.compiler }}-${{ matrix.build_type }} -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+
+      - name: Build
+        working-directory: server
+        run: cmake --build build-${{ matrix.compiler }}-${{ matrix.build_type }} --config ${{ matrix.build_type }}

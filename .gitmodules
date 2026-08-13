@@ -1,0 +1,6 @@
+[submodule "server/third_party/minidb"]
+	path = server/third_party/minidb
+	url = https://github.com/privateMwb/MiniDatabase
+[submodule "server/third_party/falconhttp"]
+	path = server/third_party/falconhttp
+	url = https://github.com/privateMwb/FalconHTTP

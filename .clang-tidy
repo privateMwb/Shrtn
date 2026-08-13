@@ -1,0 +1,63 @@
+# ============================================================
+# .clang-tidy
+# Scoped to server/include and server/src only (see
+# .github/workflows/clang-tidy.yml) — never runs against
+# server/third_party/'s vendored submodule code.
+#
+# Checks below are a moderate, curated set: real bug-catching
+# categories (bugprone, performance, modernize) enabled, with a
+# few specific checks disabled where they'd conflict with
+# reasonable choices already made in this codebase rather than
+# indicate an actual problem.
+# ============================================================
+
+Checks: >
+  -*,
+  bugprone-*,
+  performance-*,
+  modernize-*,
+  readability-*,
+  misc-*,
+  -modernize-use-trailing-return-type,
+  -readability-magic-numbers,
+  -readability-identifier-length,
+  -misc-non-private-member-variables-in-classes,
+  -misc-include-cleaner
+
+# CI runs with --warnings-as-errors=*, so every enabled check above
+# blocks a build if triggered — keep this list intentionally narrower
+# than clang-tidy's full defaults, and widen it deliberately over time
+# rather than starting from everything and fighting false positives.
+#
+# misc-include-cleaner is disabled specifically: it demands a direct
+# #include for every symbol used anywhere, even ones already covered
+# by an umbrella header included with a side-comment explaining what
+# it provides (see the include blocks in server/include/*.h) — that
+# comment-per-include convention is the intentional documentation
+# mechanism here, and satisfying include-cleaner on top of it would
+# mean duplicating that information as redundant direct includes for
+# no real bug-catching benefit.
+
+WarningsAsErrors: ""
+
+CheckOptions:
+  # Matches the naming already used throughout server/include and
+  # server/src: PascalCase types, camelBack functions/variables,
+  # trailing-underscore private members (e.g. buffer_, router_,
+  # mutex_, writeIndex_).
+  - key: readability-identifier-naming.ClassCase
+    value: CamelCase
+  - key: readability-identifier-naming.StructCase
+    value: CamelCase
+  - key: readability-identifier-naming.FunctionCase
+    value: camelBack
+  - key: readability-identifier-naming.VariableCase
+    value: camelBack
+  - key: readability-identifier-naming.ParameterCase
+    value: camelBack
+  - key: readability-identifier-naming.PrivateMemberSuffix
+    value: _
+  - key: readability-identifier-naming.ProtectedMemberSuffix
+    value: _
+  - key: readability-identifier-naming.NamespaceCase
+    value: CamelCase
