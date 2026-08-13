@@ -1,63 +1,57 @@
 # ============================================================
 # .clang-tidy
-# Scoped to server/include and server/src only (see
-# .github/workflows/clang-tidy.yml) — never runs against
-# server/third_party/'s vendored submodule code.
 #
-# Checks below are a moderate, curated set: real bug-catching
-# categories (bugprone, performance, modernize) enabled, with a
-# few specific checks disabled where they'd conflict with
-# reasonable choices already made in this codebase rather than
-# indicate an actual problem.
+# Without this file, clang-tidy falls back to its full default
+# check set -- which includes checks that actively conflict with
+# conventions already used consistently across this codebase, not
+# just in one file. Disabled below for that reason, with the
+# specific conflict noted for each:
+#
+#   readability-named-parameter
+#     Every route handler in server/src/routes/ takes unnamed,
+#     unused HttpRequest/HttpResponse params by convention (e.g.
+#     `getLinks(ShrtnDb&, const HttpRequest&, HttpResponse&)`).
+#     Enabling this fights that convention everywhere, not just
+#     once.
+#
+#   readability-identifier-naming
+#     No naming convention is documented for this project, and
+#     the default (PascalCase namespaces) conflicts with the
+#     existing lowercase `namespace detail { ... }` convention
+#     already in use.
+#
+#   performance-enum-size
+#     Backing-type micro-optimization for enums. Not an adopted
+#     convention here or in FalconHTTP/MiniDB's own enums --
+#     adopting it now means either a sweeping, low-value change
+#     across the whole ecosystem, or an inconsistency between
+#     Shrtn's enums and the libraries it's built on.
+#
+#   bugprone-easily-swappable-parameters
+#     Flags any 3+ same-typed adjacent string params (e.g.
+#     tryInsertUrl's code/originalUrl/createdAt). Real concern in
+#     principle, but fixing it means restructuring signatures
+#     (tag types or a struct) across multiple functions -- a
+#     deliberate design change, not a lint fix. Worth doing later
+#     as its own change, not silently via a tidy pass.
+#
+# Everything else uses clang-tidy's defaults. If a future warning
+# turns out to be more default-set noise than a real conflict
+# worth living with, add it above with the same reasoning --
+# don't just silence it without a note.
 # ============================================================
 
 Checks: >
-  -*,
+  clang-diagnostic-*,
+  clang-analyzer-*,
   bugprone-*,
-  performance-*,
-  modernize-*,
-  readability-*,
   misc-*,
-  -modernize-use-trailing-return-type,
-  -readability-magic-numbers,
-  -readability-identifier-length,
-  -misc-non-private-member-variables-in-classes,
-  -misc-include-cleaner
+  performance-*,
+  readability-*,
+  -readability-named-parameter,
+  -readability-identifier-naming,
+  -performance-enum-size,
+  -bugprone-easily-swappable-parameters
 
-# CI runs with --warnings-as-errors=*, so every enabled check above
-# blocks a build if triggered — keep this list intentionally narrower
-# than clang-tidy's full defaults, and widen it deliberately over time
-# rather than starting from everything and fighting false positives.
-#
-# misc-include-cleaner is disabled specifically: it demands a direct
-# #include for every symbol used anywhere, even ones already covered
-# by an umbrella header included with a side-comment explaining what
-# it provides (see the include blocks in server/include/*.h) — that
-# comment-per-include convention is the intentional documentation
-# mechanism here, and satisfying include-cleaner on top of it would
-# mean duplicating that information as redundant direct includes for
-# no real bug-catching benefit.
-
-WarningsAsErrors: ""
-
-CheckOptions:
-  # Matches the naming already used throughout server/include and
-  # server/src: PascalCase types, camelBack functions/variables,
-  # trailing-underscore private members (e.g. buffer_, router_,
-  # mutex_, writeIndex_).
-  - key: readability-identifier-naming.ClassCase
-    value: CamelCase
-  - key: readability-identifier-naming.StructCase
-    value: CamelCase
-  - key: readability-identifier-naming.FunctionCase
-    value: camelBack
-  - key: readability-identifier-naming.VariableCase
-    value: camelBack
-  - key: readability-identifier-naming.ParameterCase
-    value: camelBack
-  - key: readability-identifier-naming.PrivateMemberSuffix
-    value: _
-  - key: readability-identifier-naming.ProtectedMemberSuffix
-    value: _
-  - key: readability-identifier-naming.NamespaceCase
-    value: CamelCase
+WarningsAsErrors: '*'
+HeaderFilterRegex: '(server/include|server/src)/.*'

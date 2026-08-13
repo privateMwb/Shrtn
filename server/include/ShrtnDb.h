@@ -56,7 +56,7 @@ class ShrtnDb {
   public:
     /// @param dataDirectory Directory StorageEngine reads/writes to. Must
     /// already exist (StorageEngine does not create it).
-    explicit ShrtnDb(std::string dataDirectory)
+    explicit ShrtnDb(const std::string& dataDirectory)
         : storage_(dataDirectory), arena_(DBConstants::ARENA_SIZE), query_(arena_), db_("shrtn") {}
 
     /// @brief Loads the database from disk if present, otherwise creates
@@ -121,16 +121,21 @@ class ShrtnDb {
         }
 
         Record record(nextRecordId_.fetch_add(1, std::memory_order_relaxed));
-        if (record.setField("code", code) != Status::OK)
+        if (record.setField("code", code) != Status::OK) {
             return InsertOutcome::Error;
-        if (record.setField("originalUrl", originalUrl) != Status::OK)
+        }
+        if (record.setField("originalUrl", originalUrl) != Status::OK) {
             return InsertOutcome::Error;
-        if (record.setField("createdAt", createdAtIso8601) != Status::OK)
+        }
+        if (record.setField("createdAt", createdAtIso8601) != Status::OK) {
             return InsertOutcome::Error;
-        if (record.setField("clickCount", 0) != Status::OK)
+        }
+        if (record.setField("clickCount", 0) != Status::OK) {
             return InsertOutcome::Error;
-        if (record.setField("isPrivate", isPrivate ? 1 : 0) != Status::OK)
+        }
+        if (record.setField("isPrivate", isPrivate ? 1 : 0) != Status::OK) {
             return InsertOutcome::Error;
+        }
 
         if (urls_->insertRecord(record) != Status::OK) {
             return InsertOutcome::Error;
@@ -194,16 +199,16 @@ class ShrtnDb {
         const std::lock_guard<std::mutex> lock(mutex_);
 
         Record record;
-        if (Status s = urls_->getRecord(id, record); s != Status::OK) {
+        if (const Status s = urls_->getRecord(id, record); s != Status::OK) {
             return s;
         }
 
         const int currentCount = static_cast<int>(record.getField("clickCount").asNumber());
-        if (Status s = record.setField("clickCount", currentCount + 1); s != Status::OK) {
+        if (const Status s = record.setField("clickCount", currentCount + 1); s != Status::OK) {
             return s;
         }
 
-        if (Status s = urls_->updateRecord(record); s != Status::OK) {
+        if (const Status s = urls_->updateRecord(record); s != Status::OK) {
             return s;
         }
 
@@ -286,7 +291,6 @@ class ShrtnDb {
         return entry;
     }
 
-  private:
     static constexpr const char* kDbFile = "shrtn.json";
 
     std::mutex mutex_; ///< Guards all access below -- Table/Database aren't

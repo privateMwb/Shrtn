@@ -241,7 +241,7 @@ inline void getLinks(ShrtnDb& db, const FalconHTTP::HTTP::HttpRequest&,
         arr.push_back(std::move(row));
     }
 
-    JsonPro::Json result = arr;
+    const JsonPro::Json result = arr;
     response.setStatus(FalconHTTP::HTTP::HttpStatus::Ok);
     response.setJson(result);
 }
