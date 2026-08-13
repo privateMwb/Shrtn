@@ -1,15 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 
-// API_BASE assumes frontend and backend share an origin in production
-// (e.g. behind a reverse proxy). For local dev against
-// `./build/Shrtn_server` on :8080 with the frontend served elsewhere,
-// override this. Same open question as the project guide's Phase 6:
-// this may want to become a `?target=` param like FalconEye's dashboard
-// once real deployment is sorted out.
-const API_BASE =
-  typeof window !== "undefined" && window.location.origin.includes("8080")
-    ? window.location.origin
-    : "http://localhost:8080";
+// Set via Vite env var, not guessed from window.location -- that
+// guess only ever worked for local dev (port 8080) and would silently
+// point a deployed frontend at the visitor's own localhost, where
+// nothing is listening. Define VITE_API_BASE in frontend/.env.local
+// for local overrides, or as a Vercel project environment variable
+// for production (the Cloudflare Tunnel URL once that's live).
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8080";
 
 function shortDisplay(code) {
   return API_BASE.replace(/^https?:\/\//, "") + "/" + code;

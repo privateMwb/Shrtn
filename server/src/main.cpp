@@ -19,33 +19,26 @@
 // from FalconEye) work before any real routes are added in Phase 2.
 
 // clang-format off
-#include <FalconHTTP/Core/Server.h>        // Server
-#include <FalconHTTP/HTTP/HttpResponse.h>  // HttpResponse
-#include <FalconHTTP/HTTP/HttpStatus.h>    // HttpStatus
-#include <FalconHTTP/Middleware/Cors.h>     // Cors
-#include <FalconHTTP/Middleware/Logger.h>   // Logger
-#include <FalconHTTP/Middleware/Recovery.h> // Recovery
-#include <FalconHTTP/Routing/Router.h>      // Router
+#include <FalconHTTP/Core/Server.h>
+#include <FalconHTTP/HTTP/HttpResponse.h>
+#include <FalconHTTP/HTTP/HttpStatus.h>
+#include <FalconHTTP/Middleware/Cors.h>
+#include <FalconHTTP/Middleware/Logger.h>
+#include <FalconHTTP/Middleware/Recovery.h>
+#include <FalconHTTP/Routing/Router.h>
 
-#include "Metrics.h"     // Metrics
-#include "MetricsJson.h" // metricsToJson
-#include "ShrtnDb.h"     // Shrtn::ShrtnDb
-#include "routes/UrlRoutes.h" // Shrtn::Routes::postShorten, getRedirect, getLinks, getLinkMeta
+#include "Metrics.h"
+#include "MetricsJson.h"
+#include "ShrtnDb.h"
+#include "routes/UrlRoutes.h"
 
-#include <iostream> // std::cout, std::cerr
+#include <cstdlib>
+#include <iostream>
 // clang-format on
 
 int main() {
     FalconHTTP::Routing::Router router;
 
-    // Metrics constructed here (not just registered) since /api/health
-    // and /api/metrics below both need to reference it.
-    // Default capacity (50) is FalconEye's todos-example sizing.
-    // Shrtn's /shorten + /:code traffic is expected to run higher
-    // volume, so recentRequests would churn out of a 50-slot window
-    // within seconds under any real load -- bumped to keep a more
-    // useful trailing window. This override lives here, not in
-    // Metrics.h, so the copied-unchanged file stays untouched.
     Metrics metrics(router, /*bufferCapacity=*/200);
 
     // "./data" must already exist -- StorageEngine does not create it.
@@ -81,9 +74,6 @@ int main() {
         Shrtn::Routes::getLinkMeta(db, request, response);
     });
 
-    // Registered last: /:code is a single-segment catch-all pattern, so
-    // it's kept after the more specific literal routes above even though
-    // PathMatcher likely also distinguishes by segment count.
     router.get("/:code", [&db](const FalconHTTP::HTTP::HttpRequest& request,
                                FalconHTTP::HTTP::HttpResponse& response) {
         Shrtn::Routes::getRedirect(db, request, response);
@@ -91,20 +81,23 @@ int main() {
 
     FalconHTTP::Core::Server server(router, /*threadCount=*/4);
 
-    // Onion-model order matters: Recovery outermost so it can catch
-    // exceptions from everything inside it; Metrics last so its timing
-    // window wraps the full request, including the route handler.
     server.use(FalconHTTP::Middleware::Recovery{});
     server.use(FalconHTTP::Middleware::Logger{});
     server.use(FalconHTTP::Middleware::Cors{});
     server.use(metrics);
 
-    if (!server.start(8080)) {
-        std::cerr << "Failed to start server on port 8080\n";
+    // Render provides the PORT environment variable.
+    // Fall back to 8080 for local development.
+    const char* portEnv = std::getenv("PORT");
+    const int port = portEnv ? std::atoi(portEnv) : 8080;
+
+    if (!server.start(port)) {
+        std::cerr << "Failed to start server on port " << port << "\n";
         return 1;
     }
 
-    std::cout << "Shrtn listening on :8080\n";
+    std::cout << "Shrtn listening on :" << port << "\n";
+
     server.run();
 
     return 0;
