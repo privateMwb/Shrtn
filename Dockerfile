@@ -12,7 +12,7 @@ WORKDIR /app
 
 COPY . .
 
-RUN git submodule update --init --recursive
+RUN chmod +x init-nested-submodules.sh && ./init-nested-submodules.sh
 
 WORKDIR /app/server
 
