@@ -44,5 +44,12 @@ jobs:
         working-directory: server
         run: |
           find include src -name "*.cpp" \
-            -print0 | xargs -0 clang-tidy -p build --warnings-as-errors=* \
-            --header-filter='(include|src)/.*\.h$'
+            -print0 | xargs -0 clang-tidy -p build
+          # No --header-filter/--warnings-as-errors here: the repo-root
+          # .clang-tidy already sets HeaderFilterRegex (correctly scoped
+          # to server/include and server/src, so third_party/'s vendored
+          # headers are excluded) and WarningsAsErrors. A CLI flag would
+          # override those config values rather than complement them --
+          # the earlier broad '(include|src)/.*\.h$' CLI filter did
+          # exactly that, and matched third_party/falconhttp/include/...
+          # too, since that path also contains the substring "include/".
