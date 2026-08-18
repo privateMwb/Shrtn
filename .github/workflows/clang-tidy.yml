@@ -43,6 +43,6 @@ jobs:
       - name: Run clang-tidy
         working-directory: server
         run: |
-          find include src \
-            \( -name "*.h" -o -name "*.cpp" \) \
-            -print0 | xargs -0 clang-tidy -p build --warnings-as-errors=*
+          find include src -name "*.cpp" \
+            -print0 | xargs -0 clang-tidy -p build --warnings-as-errors=* \
+            --header-filter='(include|src)/.*\.h$'
