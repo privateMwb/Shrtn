@@ -27,11 +27,13 @@
 #include <FalconHTTP/Middleware/Recovery.h>
 #include <FalconHTTP/Routing/Router.h>
 
-#include "Metrics.h"
-#include "MetricsJson.h"
-#include "ShrtnDb.h"
-#include "routes/UrlRoutes.h"
+#include <Metrics.h>
+#include <MetricsJson.h>
+#include <ShrtnDb.h>
+#include <middleware/RateLimiterMiddleware.h>
+#include <routes/UrlRoutes.h>
 
+#include <chrono>
 #include <cstdlib>
 #include <iostream>
 // clang-format on
@@ -81,8 +83,34 @@ int main() {
 
     FalconHTTP::Core::Server server(router, /*threadCount=*/4);
 
+    // 60 requests/minute per client (X-Forwarded-For), up to 10,000
+    // distinct clients tracked before LRU eviction -- starting point,
+    // not a tuned production value. See RateLimiterMiddleware.h for the
+    // key-derivation and short-circuit details.
+    Shrtn::Middleware::RateLimiterMiddleware rateLimiter(
+        /*requestsPerWindow=*/60, /*windowDuration=*/std::chrono::minutes(1),
+        /*cacheCapacity=*/10000);
+
     server.use(FalconHTTP::Middleware::Recovery{});
     server.use(FalconHTTP::Middleware::Logger{});
+    // Placed after Logger (so a 429 still gets logged with its real
+    // status/duration) and before Cors/metrics/the route handler (so a
+    // denied request short-circuits before any of that runs).
+    //
+    // rateLimiter isn't passed by value here: RateLimiterMiddleware
+    // owns a RateLimiter, which owns a std::mutex, which isn't
+    // copyable -- and FunctionPro::Function (what MiddlewareFn is
+    // built on) requires its wrapped callable to be copy-constructible,
+    // same as std::function would. A lambda that captures rateLimiter
+    // by reference is itself trivially copyable regardless of what it
+    // points to, so this satisfies that requirement without making
+    // RateLimiterMiddleware itself copyable (which would silently
+    // duplicate its mutex and cache -- not something we want).
+    server.use([&rateLimiter](FalconHTTP::HTTP::HttpRequest& request,
+                              FalconHTTP::HTTP::HttpResponse& response,
+                              const FalconHTTP::Middleware::NextHandler& next) {
+        rateLimiter(request, response, next);
+    });
     server.use(FalconHTTP::Middleware::Cors{});
     server.use(metrics);
 

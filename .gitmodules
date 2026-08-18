@@ -4,3 +4,6 @@
 [submodule "server/third_party/falconhttp"]
 	path = server/third_party/falconhttp
 	url = https://github.com/privateMwb/FalconHTTP
+[submodule "server/third_party/ratethrottle"]
+	path = server/third_party/ratethrottle
+	url = https://github.com/privateMwb/RateThrottle
