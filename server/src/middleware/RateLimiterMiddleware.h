@@ -96,7 +96,8 @@ class RateLimiterMiddleware {
                           std::size_t cacheCapacity = 10000)
         : limiter_(requestsPerWindow, windowDuration, cacheCapacity) {}
 
-    void operator()(FalconHTTP::HTTP::HttpRequest& request, FalconHTTP::HTTP::HttpResponse& response,
+    void operator()(FalconHTTP::HTTP::HttpRequest& request,
+                    FalconHTTP::HTTP::HttpResponse& response,
                     const FalconHTTP::Middleware::NextHandler& next) {
         const std::string key = detail::clientKey(request);
 
