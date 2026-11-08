@@ -1,0 +1,15 @@
+# Render Blueprint for the Shrtn backend: one container that runs the real Shrtn_server,
+# built from the Dockerfile. The frontend is deployed separately (Vercel); see
+# docs/DEPLOYMENT.md.
+services:
+  - type: web
+    name: shrtn
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    # "free" works but sleeps after a while without traffic; the first request afterwards
+    # takes about a minute, and every link is gone (see the Docker section of the README:
+    # /app/data is not a persistent volume). A paid plan with a persistent disk mounted at
+    # /app/data would keep them.
+    plan: free
+    healthCheckPath: /api/health

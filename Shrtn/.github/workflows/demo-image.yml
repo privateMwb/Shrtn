@@ -1,0 +1,62 @@
+# ============================================================
+# .github/workflows/demo-image.yml
+# Builds the backend image (Dockerfile) and checks the running
+# container from the outside with scripts/check-demo.sh: the server
+# answers, a link can be created, followed and counted, private links
+# stay unlisted, bad input is refused, the metrics grow, and CORS.
+#
+# This is the same check you can run against a deployed Render
+# service, so a green run here means the image itself works.
+# ============================================================
+
+name: Demo image
+
+on:
+  push:
+    paths:
+      - "Dockerfile"
+      - ".dockerignore"
+      - "render.yaml"
+      - "init-nested-submodules.sh"
+      - "server/**"
+      - "scripts/**"
+      - ".github/workflows/demo-image.yml"
+  pull_request:
+    paths:
+      - "Dockerfile"
+      - ".dockerignore"
+      - "render.yaml"
+      - "init-nested-submodules.sh"
+      - "server/**"
+      - "scripts/**"
+      - ".github/workflows/demo-image.yml"
+
+jobs:
+  build-and-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Build the image
+        run: docker build -t shrtn .
+
+      - name: Start the container
+        run: docker run -d --name shrtn -p 8080:8080 shrtn
+
+      - name: Check it from outside
+        run: scripts/check-demo.sh http://127.0.0.1:8080 https://frontend.example
+
+      # If the image failed to build, there is no container; say so instead of adding a
+      # second, misleading error on top of the real one.
+      - name: Container logs
+        if: always()
+        run: docker logs shrtn || echo "No container to show logs for (an earlier step failed)."
+
+      - name: Stop the container
+        if: always()
+        run: docker rm -f shrtn || true

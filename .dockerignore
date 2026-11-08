@@ -1,0 +1,12 @@
+# Keep the Docker build context small: only server/, init-nested-submodules.sh and
+# the .gitmodules files are used by the Dockerfile.
+.github
+.clusterfuzzlite
+docs
+frontend
+scripts
+**/node_modules
+**/build
+**/build-*
+server/data
+*.md

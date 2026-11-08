@@ -76,3 +76,65 @@ target_link_libraries(
         MiniDB
         ThrottlePro
 )
+
+# ============================================================================
+# Tests
+# ============================================================================
+
+# Named SHRTN_BUILD_TESTS, not BUILD_TESTS: the latter is force-set OFF
+# above for the submodules.
+option(SHRTN_BUILD_TESTS "Build the Shrtn test suite" ON)
+
+if(SHRTN_BUILD_TESTS)
+    file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp"
+    )
+
+    add_executable(shrtn_tests ${TEST_SOURCES})
+
+    target_include_directories(
+        shrtn_tests
+        PRIVATE
+            include
+            src
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests
+    )
+
+    target_link_libraries(
+        shrtn_tests
+        PRIVATE
+            FalconHTTP
+            MiniDB
+    )
+endif()
+
+# ============================================================================
+# Fuzz harnesses (built by ClusterFuzzLite; see ../.clusterfuzzlite/)
+# ============================================================================
+
+# OFF by default: the harnesses need a fuzzing engine to link against, which
+# ClusterFuzzLite provides through $LIB_FUZZING_ENGINE. Every
+# fuzz/fuzz_<name>.cpp becomes its own executable, no edit needed here.
+option(SHRTN_BUILD_FUZZERS "Build the libFuzzer harnesses" OFF)
+
+if(SHRTN_BUILD_FUZZERS)
+    file(GLOB FUZZ_SOURCES CONFIGURE_DEPENDS
+        "${CMAKE_CURRENT_SOURCE_DIR}/fuzz/fuzz_*.cpp"
+    )
+
+    foreach(fuzz_source ${FUZZ_SOURCES})
+        get_filename_component(fuzz_name ${fuzz_source} NAME_WE)
+
+        add_executable(${fuzz_name} ${fuzz_source})
+
+        target_include_directories(${fuzz_name} PRIVATE include src)
+
+        target_link_libraries(
+            ${fuzz_name}
+            PRIVATE
+                FalconHTTP
+                MiniDB
+                $ENV{LIB_FUZZING_ENGINE}
+        )
+    endforeach()
+endif()
