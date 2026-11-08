@@ -47,15 +47,13 @@ updates:
       interval: "weekly"
     commit-message:
       prefix: "npm"
-    # Minor and patch bumps share one PR. A major bump gets its own PR, so a breaking release
-    # can't sink the whole group.
+    # Everything npm moves in ONE PR, majors included. These packages can't be bumped one at a
+    # time: react-dom needs the matching react, and @vitejs/plugin-react needs the matching
+    # vite, so separate PRs each fail CI on their own.
     groups:
-      npm-minor-patch:
+      npm:
         patterns:
           - "*"
-        update-types:
-          - "minor"
-          - "patch"
 
   - package-ecosystem: "docker"
     directory: "/"
