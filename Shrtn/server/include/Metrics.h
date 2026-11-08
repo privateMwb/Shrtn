@@ -60,7 +60,7 @@ inline std::string currentTimestampIso8601() {
     const std::time_t t = std::chrono::system_clock::to_time_t(now);
 
     std::tm utcTm{};
-#if defined(_WIN32)
+#ifdef _WIN32
     gmtime_s(&utcTm, &t);
 #else
     gmtime_r(&t, &utcTm);
