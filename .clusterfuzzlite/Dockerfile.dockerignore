@@ -1,0 +1,6 @@
+# Ignore file used ONLY when building .clusterfuzzlite/Dockerfile. BuildKit looks for
+# <Dockerfile name>.dockerignore next to the Dockerfile and prefers it over the repo-root
+# .dockerignore, which is tuned for the app image. Keep this list short: the fuzz build needs
+# .clusterfuzzlite/build.sh and the server sources, and must never lose them to an ignore rule.
+**/node_modules
+server/data

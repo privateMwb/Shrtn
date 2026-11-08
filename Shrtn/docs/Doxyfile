@@ -1,0 +1,55 @@
+# ============================================================
+# docs/Doxyfile
+# Generates API reference docs from server/include and
+# server/src, published to GitHub Pages by
+# .github/workflows/docs.yml.
+#
+# Retargeting: PROJECT_NAME, PROJECT_BRIEF, and the INPUT paths
+# are the only project-specific lines here.
+#
+# Only the settings that differ from Doxygen's defaults are listed --
+# run `doxygen -g -` to see the full default set if needed.
+# ============================================================
+
+PROJECT_NAME            = "Shrtn"
+PROJECT_BRIEF           = "A URL shortener: FalconHTTP + MiniDB backend, React frontend, observability exposed via /api/metrics for FalconEye to poll."
+
+OUTPUT_DIRECTORY        = .
+
+INPUT                   = ../server/include ../server/src ../README.md
+USE_MDFILE_AS_MAINPAGE  = ../README.md
+FILE_PATTERNS           = *.h *.tpp *.cpp
+RECURSIVE               = YES
+# Submodules are untouched, vendored dependencies, not Shrtn's own
+# API surface -- never document their sources.
+EXCLUDE                 = ../server/third_party
+
+# Headers already carry real \brief/\param/\return/\throws comments
+# (see server/include/*.h and server/src/routes/*.h), so EXTRACT_ALL
+# is off -- this makes WARN_IF_UNDOCUMENTED actually useful, flagging
+# anything genuinely missing instead of staying silent because
+# everything's auto-included.
+EXTRACT_ALL             = NO
+WARN_IF_UNDOCUMENTED    = YES
+
+GENERATE_HTML           = YES
+GENERATE_LATEX          = NO
+
+# Doxygen Awesome theme (jothepro/doxygen-awesome-css). Not vendored
+# in the repo -- fetched fresh into doxygen-awesome-css/ by both the
+# CI workflow and the local generation command below.
+HTML_EXTRA_STYLESHEET   = doxygen-awesome-css/doxygen-awesome.css \
+                          doxygen-awesome-css/doxygen-awesome-sidebar-only.css
+HTML_COLORSTYLE         = LIGHT
+GENERATE_TREEVIEW       = YES
+FULL_SIDEBAR            = NO
+DISABLE_INDEX           = NO
+
+# Class/include/collaboration diagrams. Requires Graphviz locally
+# (`pkg install graphviz` on Termux) -- harmless if missing, Doxygen
+# just skips diagram generation with a warning.
+HAVE_DOT                = YES
+DOT_IMAGE_FORMAT        = svg
+INTERACTIVE_SVG         = YES
+
+QUIET                   = NO

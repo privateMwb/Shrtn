@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Smoke test for a running Shrtn server. Not a substitute for real unit
-# tests (Shrtn has none -- it's thin glue over already-tested FalconHTTP/
-# MiniDB) -- this just confirms the whole request path actually works
-# end-to-end against a live instance, the way the manual curl checks
-# earlier in the project did, but repeatable.
+# Smoke test for a running Shrtn server. Not a substitute for the unit
+# tests in server/tests/ (run in CI by build.yml) -- this confirms the
+# whole request path actually works end-to-end against a live instance,
+# the way the manual curl checks earlier in the project did, but
+# repeatable.
 #
 # Usage: ./smoke_test.sh [base_url]
 #   Defaults to http://localhost:8080

@@ -1,0 +1,9 @@
+{
+	"InstallScripts" : 
+	[
+		"/data/data/com.termux/files/home/projects/C++/Applications/Shrtn/server/cmake_install.cmake",
+		"/data/data/com.termux/files/home/projects/C++/Applications/Shrtn/server/third_party/falconhttp/cmake_install.cmake",
+		"/data/data/com.termux/files/home/projects/C++/Applications/Shrtn/server/third_party/minidb/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

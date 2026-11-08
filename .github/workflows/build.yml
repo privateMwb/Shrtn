@@ -10,11 +10,11 @@
 # MSVC -- add those to the matrix once actually verified, rather
 # than claim support that hasn't been checked.
 #
-# No test step: server/ has no tests/ directory yet (Shrtn is
-# thin glue over already-tested FalconHTTP/MiniDB). See
-# scripts/smoke_test.sh for a separate, manually-run end-to-end
-# check against a live instance -- not wired into this workflow,
-# since it needs a real running server and isn't a ctest suite.
+# After each build, runs shrtn_tests (server/tests/): unit tests
+# for ShrtnDb, URL validation and short-code generation, the
+# metrics ring buffer, the /api/metrics JSON, and DbTiming. The
+# sanitizer workflow covers the live-server side, and
+# scripts/smoke_test.sh is the manual end-to-end check.
 # ============================================================
 
 name: Build
@@ -51,7 +51,7 @@ jobs:
 
     steps:
       - name: Checkout (with submodules)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: recursive
 
@@ -69,3 +69,7 @@ jobs:
       - name: Build
         working-directory: server
         run: cmake --build build-${{ matrix.compiler }}-${{ matrix.build_type }} --config ${{ matrix.build_type }}
+
+      - name: Run tests
+        working-directory: server
+        run: ./build-${{ matrix.compiler }}-${{ matrix.build_type }}/shrtn_tests

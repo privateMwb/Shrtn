@@ -1,0 +1,14 @@
+# Keep the Docker build context small: only server/, init-nested-submodules.sh and
+# the .gitmodules files are used by the Dockerfile.
+#
+# .clusterfuzzlite/ is deliberately NOT listed: ClusterFuzzLite builds its image from this
+# same context and COPYs .clusterfuzzlite/build.sh, so ignoring it breaks the fuzz build.
+.github
+docs
+frontend
+scripts
+**/node_modules
+**/build
+**/build-*
+server/data
+*.md

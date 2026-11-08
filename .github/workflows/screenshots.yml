@@ -1,0 +1,161 @@
+# ============================================================
+# .github/workflows/screenshots.yml
+# Manually triggered. Opens the frontend in a headless browser, takes
+# the README screenshots, uploads them as a downloadable artifact, and
+# opens a pull request that updates the screenshots in docs/assets/.
+#
+# Two ways to run it:
+#
+#   - With a frontend URL (and the backend URL it talks to): captures
+#     your live deployment. The backend is woken up first, because free
+#     Render instances sleep. The script creates a few example links
+#     through the UI (so those rows are added to that backend's database)
+#     and blocks the links requests to show the "server isn't
+#     responding" state. Nothing is changed or deleted.
+#
+#   - With the frontend URL left empty: builds the server and the
+#     frontend on the runner, runs them there, and captures that.
+#     Works before (or without) a Render/Vercel deployment.
+#
+# One-time setup for the PR step: Settings -> Actions -> General ->
+# "Allow GitHub Actions to create and approve pull requests".
+# PRs opened with the built-in token do not start other workflows, so
+# the required build checks will not run on it; close and reopen the
+# PR (or merge with your bypass) to get them going.
+# ============================================================
+
+name: Screenshots
+
+on:
+  workflow_dispatch:
+    inputs:
+      app_url:
+        description: "Frontend URL (leave empty to build and run Shrtn on the runner)"
+        default: ""
+      backend_url:
+        description: "Backend URL (woken up before capturing; ignored when the frontend URL is empty)"
+        default: ""
+      open_pr:
+        description: "Open a PR that updates the screenshots in docs/assets/"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # The live frontend when one is given, otherwise the local preview started below.
+      APP_URL: ${{ inputs.app_url != '' && inputs.app_url || 'http://localhost:4173' }}
+      # The backend the visits are sent to: the live one, or the local server.
+      API_BASE: ${{ inputs.app_url != '' && inputs.backend_url || 'http://localhost:8080' }}
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Create the output folder
+        run: mkdir -p docs/assets
+
+      - name: Wake the backend (free Render instances sleep)
+        if: ${{ inputs.app_url != '' && inputs.backend_url != '' }}
+        run: |
+          curl --fail --silent --show-error \
+            --retry 20 --retry-delay 10 --retry-all-errors --max-time 60 \
+            "${{ inputs.backend_url }}/api/health"
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # --- Local run: only when no frontend URL was given -------------------------------------
+
+      - name: Build the server
+        if: ${{ inputs.app_url == '' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build g++
+          cmake -S server -B server/build -G Ninja -DCMAKE_BUILD_TYPE=Release -DSHRTN_BUILD_TESTS=OFF
+          cmake --build server/build --target Shrtn_server
+
+      - name: Build the frontend
+        if: ${{ inputs.app_url == '' }}
+        working-directory: frontend
+        env:
+          VITE_API_BASE: http://localhost:8080
+        run: |
+          npm ci
+          npm run build
+
+      - name: Start the server and the frontend
+        if: ${{ inputs.app_url == '' }}
+        run: |
+          mkdir -p server/data
+          (cd server && ./build/Shrtn_server > ../server.log 2>&1 &)
+          (cd frontend && npx vite preview --host 127.0.0.1 --port 4173 > ../preview.log 2>&1 &)
+          curl --fail --silent --retry 30 --retry-delay 2 --retry-connrefused http://127.0.0.1:8080/api/health
+          curl --fail --silent --retry 30 --retry-delay 2 --retry-connrefused http://127.0.0.1:4173/ > /dev/null
+
+      # -----------------------------------------------------------------------------------------
+
+      - name: Install Playwright
+        run: |
+          mkdir "$RUNNER_TEMP/pw"
+          cp scripts/capture-screenshots.mjs "$RUNNER_TEMP/pw/"
+          cd "$RUNNER_TEMP/pw"
+          npm init -y
+          npm install playwright@1.49.1
+          npx playwright install --with-deps chromium
+
+      - name: Capture screenshots
+        working-directory: ${{ runner.temp }}/pw
+        env:
+          OUT_DIR: ${{ github.workspace }}/docs/assets
+        run: node capture-screenshots.mjs
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: docs/assets/*.png
+          if-no-files-found: warn
+
+      - name: Show the server logs
+        if: ${{ failure() && inputs.app_url == '' }}
+        run: |
+          echo "--- server.log"; cat server.log || true
+          echo "--- preview.log"; cat preview.log || true
+
+      - name: Open a PR with the screenshots
+        if: ${{ inputs.open_pr }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          rm -f docs/assets/_debug-failure.png
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          BRANCH="docs/screenshots-${{ github.run_id }}"
+          git checkout -b "$BRANCH"
+          git add docs/assets/*.png
+          if git diff --cached --quiet; then
+            echo "Screenshots are unchanged; no PR needed."
+            exit 0
+          fi
+
+          git commit -m "docs: update frontend screenshots"
+          git push origin "$BRANCH"
+          gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "docs: update frontend screenshots" \
+            --body "Screenshots captured by the Screenshots workflow (run ${{ github.run_id }}) from ${APP_URL}. Check the images before merging."

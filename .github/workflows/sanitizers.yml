@@ -36,7 +36,7 @@ jobs:
                         # visibly rather than hang silently.
     steps:
       - name: Checkout (with submodules)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: recursive
 
@@ -127,7 +127,7 @@ jobs:
                         # what caught FalconEye's own ~1hr hang originally.
     steps:
       - name: Checkout (with submodules)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: recursive
 
