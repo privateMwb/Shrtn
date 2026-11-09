@@ -1,13 +1,14 @@
 <svg width="160" height="30" viewBox="0 0 160 30" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Back to top">
   <defs>
     <linearGradient id="b" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#5EEAD4"/>
-      <stop offset="100%" stop-color="#F5A623"/>
+      <stop offset="0%" stop-color="#E879F9"/>
+      <stop offset="50%" stop-color="#F472B6"/>
+      <stop offset="100%" stop-color="#FB7185"/>
     </linearGradient>
   </defs>
   <rect x="1" y="1" width="158" height="28" rx="14" fill="#12161B" stroke="url(#b)" stroke-width="1.5"/>
-  <circle cx="23" cy="15" r="8.5" fill="#0B0E11" stroke="#1F2A33"/>
-  <path d="M19.5 17 L23 12.5 L26.5 17" fill="none" stroke="#5EEAD4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="23" cy="15" r="8.5" fill="#0B0E11" stroke="#2A2030"/>
+  <path d="M19.5 17 L23 12.5 L26.5 17" fill="none" stroke="#F472B6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
   <text x="42" y="19.5" font-family="'Segoe UI',Helvetica,Arial,sans-serif" font-size="11" font-weight="600"
         letter-spacing="1.6" fill="#9CA3AF">BACK TO TOP</text>
 </svg>
