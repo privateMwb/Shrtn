@@ -198,7 +198,18 @@ export default function ShrtnApp() {
         <div style={styles.brandRow}>
           <div style={styles.dot} />
           <h1 style={styles.wordmark}>
-            shr<span style={{ color: colors.cyan }}>tn</span>
+            shr
+            <span
+              style={{
+                backgroundImage: colors.flame,
+                WebkitBackgroundClip: "text",
+                backgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                color: colors.accent,
+              }}
+            >
+              tn
+            </span>
           </h1>
         </div>
         <p style={styles.tagline}>
@@ -386,10 +397,13 @@ const colors = {
   line: "#1A1F26",
   text: "#E5E7EB",
   textDim: "#6B7280",
-  cyan: "#5EEAD4",
-  cyanSoft: "rgba(94, 234, 212, 0.1)",
-  amber: "#F5A623",
-  red: "#F87171",
+  // "Magenta flame": the same three stops as the README artwork.
+  accent: "#F472B6",
+  accentSoft: "rgba(244, 114, 182, 0.12)",
+  accent2: "#E879F9",
+  flame: "linear-gradient(90deg, #E879F9, #F472B6, #FB7185)",
+  // Errors stay a true red so they never read as the pink accent.
+  red: "#FF5C4D",
 };
 
 const fontDisplay = '"Inter", sans-serif';
@@ -424,8 +438,8 @@ const styles = {
     width: 8,
     height: 8,
     borderRadius: "50%",
-    background: colors.cyan,
-    boxShadow: `0 0 8px ${colors.cyan}`,
+    background: colors.flame,
+    boxShadow: `0 0 8px ${colors.accent}`,
     flexShrink: 0,
   },
   wordmark: {
@@ -478,7 +492,7 @@ const styles = {
     borderColor: colors.red,
   },
   shrtnBtn: {
-    background: colors.cyan,
+    background: colors.flame,
     color: colors.bg,
     border: "none",
     borderRadius: 6,
@@ -529,8 +543,8 @@ const styles = {
     transition: "background 150ms ease, border-color 150ms ease",
   },
   toggleTrackActive: {
-    background: colors.cyanSoft,
-    borderColor: colors.cyan,
+    background: colors.accentSoft,
+    borderColor: colors.accent,
   },
   toggleThumb: {
     position: "absolute",
@@ -544,7 +558,7 @@ const styles = {
   },
   toggleThumbActive: {
     transform: "translateX(14px)",
-    background: colors.cyan,
+    background: colors.accent,
   },
   toggleLabel: {
     fontFamily: fontMono,
@@ -553,7 +567,7 @@ const styles = {
   },
   result: {
     background: colors.card,
-    border: `1px solid ${colors.cyan}`,
+    border: `1px solid ${colors.accent}`,
     borderRadius: 10,
     padding: "16px 18px",
     display: "flex",
@@ -566,12 +580,12 @@ const styles = {
     width: 50,
     height: 50,
     borderRadius: "50%",
-    border: `1.5px solid ${colors.cyan}`,
+    border: `1.5px solid ${colors.accent}`,
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    color: colors.cyan,
+    color: colors.accent,
     fontFamily: fontMono,
     lineHeight: 1,
   },
@@ -587,7 +601,7 @@ const styles = {
     fontFamily: fontMono,
     fontSize: 16,
     fontWeight: 600,
-    color: colors.cyan,
+    color: colors.accent,
     display: "block",
     marginBottom: 3,
     textDecoration: "none",
@@ -602,8 +616,8 @@ const styles = {
   },
   copyBtn: {
     flexShrink: 0,
-    background: colors.cyanSoft,
-    color: colors.cyan,
+    background: colors.accentSoft,
+    color: colors.accent,
     border: `1px solid ${colors.line}`,
     borderRadius: 6,
     padding: "8px 14px",
@@ -652,8 +666,8 @@ const styles = {
     lineHeight: 1,
   },
   miniStampActive: {
-    borderColor: colors.amber,
-    color: colors.amber,
+    borderColor: colors.accent2,
+    color: colors.accent2,
   },
   miniStampN: { fontSize: 12, fontWeight: 600 },
   miniStampU: { fontSize: 5.5, letterSpacing: "0.04em", marginTop: 1 },
@@ -666,7 +680,7 @@ const styles = {
     display: "block",
   },
   privateTag: {
-    color: colors.amber,
+    color: colors.accent2,
     fontWeight: 500,
     fontSize: 11.5,
   },
@@ -707,7 +721,7 @@ const styles = {
     left: "50%",
     transform: "translateX(-50%)",
     background: colors.card,
-    border: `1px solid ${colors.cyan}`,
+    border: `1px solid ${colors.accent}`,
     color: colors.text,
     fontSize: 13,
     padding: "10px 18px",

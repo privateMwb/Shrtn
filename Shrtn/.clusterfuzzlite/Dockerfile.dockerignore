@@ -1,8 +1,0 @@
-# Ignore file used ONLY when building .clusterfuzzlite/Dockerfile (BuildKit looks for
-# <Dockerfile name>.dockerignore next to the Dockerfile and prefers it over the repo-root
-# .dockerignore). That keeps this build independent of the root file, which is tuned for the
-# app image and must not hide .clusterfuzzlite/build.sh from the COPY in this Dockerfile.
-**/node_modules
-**/build
-**/build-*
-server/data

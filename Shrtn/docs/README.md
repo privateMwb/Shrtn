@@ -1,1 +1,0 @@
-Guides for Shrtn: [Architecture](ARCHITECTURE.md), [Demo](DEMO.md), [Deployment](DEPLOYMENT.md) and the endpoint-level [API reference](API.md). The generated source reference (Doxygen, from `Doxyfile`) is published at https://privateMwb.github.io/Shrtn/.

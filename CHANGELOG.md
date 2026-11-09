@@ -34,6 +34,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Frontend and README artwork use one palette, "Magenta flame" (`#E879F9` → `#F472B6` → `#FB7185`):
+  gradient wordmark, primary button and status dot; error states keep a separate true red. New
+  favicon, linked from `index.html` along with a `theme-color`.
+- Frontend dependencies upgraded together: React 19, Vite 8, `@vitejs/plugin-react` 6.
 - Workflow actions are on the same versions FalconEye uses (`checkout@v7`, `setup-node@v7`,
   `upload-pages-artifact@v5`, `deploy-pages@v5`).
 - The Docker build turns the test target off (`-DSHRTN_BUILD_TESTS=OFF`).
