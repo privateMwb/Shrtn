@@ -290,7 +290,7 @@ npm --prefix frontend run dev          # http://localhost:5173
 
 <p align="center"><img src="docs/assets/shrtn.png" alt="Shrtn frontend" width="360"></p>
 
-It uses a dark palette with cyan and amber accents and mono type for data. It reads `http://localhost:8080` by default; point it elsewhere with `VITE_API_BASE` at build time.
+It uses a dark palette with a magenta-to-rose gradient accent (the same three colors as the artwork above) and mono type for data. It reads `http://localhost:8080` by default; point it elsewhere with `VITE_API_BASE` at build time.
 
 | Element | What it does |
 |---|---|
