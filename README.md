@@ -3,11 +3,11 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/github/v/release/privateMwb/Shrtn?style=for-the-badge&logo=github&color=F5A623&labelColor=0B0E11" alt="Version">
-  <img src="https://img.shields.io/badge/License-MIT-5EEAD4?style=for-the-badge&labelColor=0B0E11" alt="License - MIT">
-  <img src="https://img.shields.io/badge/C%2B%2B-23-F5A623?style=for-the-badge&logo=cplusplus&logoColor=white&labelColor=0B0E11" alt="C++ - 23">
+  <img src="https://img.shields.io/github/v/release/privateMwb/Shrtn?style=for-the-badge&logo=github&color=FB7185&labelColor=0B0E11" alt="Version">
+  <img src="https://img.shields.io/badge/License-MIT-E879F9?style=for-the-badge&labelColor=0B0E11" alt="License - MIT">
+  <img src="https://img.shields.io/badge/C%2B%2B-23-F472B6?style=for-the-badge&logo=cplusplus&logoColor=white&labelColor=0B0E11" alt="C++ - 23">
   <img src="https://img.shields.io/badge/React-18-149ECA?style=for-the-badge&logo=react&logoColor=white&labelColor=0B0E11" alt="React - 18">
-  <img src="https://img.shields.io/badge/Metrics-%2Fapi%2Fmetrics-5EEAD4?style=for-the-badge&labelColor=0B0E11" alt="Metrics - /api/metrics">
+  <img src="https://img.shields.io/badge/Metrics-%2Fapi%2Fmetrics-E879F9?style=for-the-badge&labelColor=0B0E11" alt="Metrics - /api/metrics">
 </p>
 
 <p align="center">
@@ -70,6 +70,17 @@
 <p align="center">
   <img src="docs/assets/shrtn.png" alt="Shrtn frontend: a shorten form with a private-link toggle, a result card with a copy button, and the list of recent links with click counts" width="360">
 </p>
+
+<details>
+<summary>More screenshots</summary>
+
+<p align="center">
+  <img src="docs/assets/shrtn-private.png" alt="A private link created: it shows in the creator's own list, tagged private" width="250">
+  <img src="docs/assets/shrtn-error.png" alt="A javascript: URL refused by the form, with the inline error" width="250">
+  <img src="docs/assets/shrtn-server-down.png" alt="Server unreachable: the page says the server is not responding" width="250">
+</p>
+
+</details>
 
 <br>
 
