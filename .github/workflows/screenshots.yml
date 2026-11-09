@@ -4,16 +4,17 @@
 # the README screenshots, uploads them as a downloadable artifact, and
 # opens a pull request that updates the screenshots in docs/assets/.
 #
-# Two ways to run it:
+# Two ways to run it (the two URL inputs are pre-filled with the live
+# deployment, so a plain "Run workflow" captures that):
 #
 #   - With a frontend URL (and the backend URL it talks to): captures
-#     your live deployment. The backend is woken up first, because free
+#     the live deployment. The backend is woken up first, because free
 #     Render instances sleep. The script creates a few example links
 #     through the UI (so those rows are added to that backend's database)
 #     and blocks the links requests to show the "server isn't
 #     responding" state. Nothing is changed or deleted.
 #
-#   - With the frontend URL left empty: builds the server and the
+#   - With the frontend URL cleared: builds the server and the
 #     frontend on the runner, runs them there, and captures that.
 #     Works before (or without) a Render/Vercel deployment.
 #
@@ -30,11 +31,11 @@ on:
   workflow_dispatch:
     inputs:
       app_url:
-        description: "Frontend URL (leave empty to build and run Shrtn on the runner)"
-        default: ""
+        description: "Frontend URL (clear it to run Shrtn on the runner instead)"
+        default: "https://shrtn-nine.vercel.app"
       backend_url:
-        description: "Backend URL (woken up before capturing; ignored when the frontend URL is empty)"
-        default: ""
+        description: "Backend URL (woken up first; ignored if the frontend URL is cleared)"
+        default: "https://shrtn-kq4g.onrender.com"
       open_pr:
         description: "Open a PR that updates the screenshots in docs/assets/"
         type: boolean
@@ -123,7 +124,7 @@ jobs:
 
       - name: Upload screenshots
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: screenshots
           path: docs/assets/*.png
